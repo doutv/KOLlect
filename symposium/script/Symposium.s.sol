@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "forge-std/Script.sol";
-import "../src/symposium.sol";
+import "../src/Symposium.sol";
 
 contract SymposiumScript is Script {
     function setUp() public {}

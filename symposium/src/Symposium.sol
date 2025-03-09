@@ -10,6 +10,7 @@ contract Symposium {
     }
 
     struct Proposal {
+        string title;           // proposal title
         string details;          // proposal details stored directly
         uint256 expireTime;     // timestamp when proposal expires
         bool isFinalized;       // whether proposal is finalized
@@ -28,24 +29,25 @@ contract Symposium {
     uint256 public proposalCount;
     mapping(uint256 => Proposal) public proposals;
 
-    event ProposalCreated(uint256 indexed proposalId, string details, uint256 expireTime);
+    event ProposalCreated(uint256 indexed proposalId, string title, string details, uint256 expireTime);
     event OpinionCreated(uint256 indexed proposalId, uint256 opinionIndex, address creator, bool vote, string reasoning);
     event VoteCast(uint256 indexed proposalId, uint256 opinionIndex, address voter);
     event ProposalFinalized(uint256 indexed proposalId, bool yesWins, uint256 totalShares, uint256 totalPot);
     event RewardClaimed(uint256 indexed proposalId, address indexed claimer, uint256 amount);
 
-    function createProposal(string calldata _details, uint256 _duration) external {
+    function createProposal(string calldata _title, string calldata _details, uint256 _duration) external {
         require(_duration > 0, "Duration must be positive");
         
         proposalCount++;
         Proposal storage proposal = proposals[proposalCount];
+        proposal.title = _title;
         proposal.details = _details;
         proposal.expireTime = block.timestamp + _duration;
         proposal.isFinalized = false;
         proposal.totalYesVotes = 0;
         proposal.totalNoVotes = 0;
 
-        emit ProposalCreated(proposalCount, _details, proposal.expireTime);
+        emit ProposalCreated(proposalCount, _title, _details, proposal.expireTime);
     }
 
     function createOpinion(uint256 _proposalId, bool _vote, string calldata _reasoning) external payable {
