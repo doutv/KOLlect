@@ -1,8 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
 import { usePathname } from "next/navigation"
+import { WalletConnect } from "./wallet-connect"
 
 export default function Header() {
   const pathname = usePathname()
@@ -17,28 +17,31 @@ export default function Header() {
               <span className="ml-2 text-sm text-gray-500">Decentralized Decision Making</span>
             </Link>
           </div>
-          <nav className="flex space-x-4">
-            <Link
-              href="/"
-              className={`px-3 py-2 rounded-md text-sm font-medium ${
-                pathname === "/"
-                  ? "bg-indigo-100 text-indigo-700"
-                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-              }`}
-            >
-              Proposals
-            </Link>
-            <Link
-              href="/create-proposal"
-              className={`px-3 py-2 rounded-md text-sm font-medium ${
-                pathname === "/create-proposal"
-                  ? "bg-indigo-100 text-indigo-700"
-                  : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-              }`}
-            >
-              Create Proposal
-            </Link>
-          </nav>
+          <div className="flex items-center space-x-4">
+            <nav className="flex space-x-4 mr-4">
+              <Link
+                href="/"
+                className={`px-3 py-2 rounded-md text-sm font-medium ${
+                  pathname === "/"
+                    ? "bg-indigo-100 text-indigo-700"
+                    : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                }`}
+              >
+                Proposals
+              </Link>
+              <Link
+                href="/create-proposal"
+                className={`px-3 py-2 rounded-md text-sm font-medium ${
+                  pathname === "/create-proposal"
+                    ? "bg-indigo-100 text-indigo-700"
+                    : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                }`}
+              >
+                Create Proposal
+              </Link>
+            </nav>
+            <WalletConnect />
+          </div>
         </div>
       </div>
     </header>

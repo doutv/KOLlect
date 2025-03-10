@@ -5,6 +5,7 @@ import { Inter } from "next/font/google"
 import { ProposalsProvider } from "../contexts/ProposalsContext"
 import Header from "../components/header"
 import { ThemeProvider } from "../components/theme-provider"
+import { Web3Provider } from "../contexts/Web3Context"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -26,14 +27,16 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <ProposalsProvider>
-            <div className="min-h-screen bg-gray-100">
-              <Header />
-              <main className="py-10">
-                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">{children}</div>
-              </main>
-            </div>
-          </ProposalsProvider>
+          <Web3Provider>
+            <ProposalsProvider>
+              <div className="min-h-screen bg-gray-100">
+                <Header />
+                <main className="py-10">
+                  <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">{children}</div>
+                </main>
+              </div>
+            </ProposalsProvider>
+          </Web3Provider>
         </ThemeProvider>
       </body>
     </html>
