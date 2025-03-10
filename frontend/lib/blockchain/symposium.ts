@@ -29,6 +29,16 @@ export type VoteForOpinionParams = {
   opinionIndex: bigint
 }
 
+// Gas limit constants for testnet transactions
+// These are conservative estimates to ensure transactions go through
+const GAS_LIMITS = {
+  CREATE_PROPOSAL: BigInt(500000),
+  CREATE_OPINION: BigInt(300000),
+  VOTE_FOR_OPINION: BigInt(250000),
+  FINALIZE_PROPOSAL: BigInt(400000),
+  CLAIM_REWARD: BigInt(200000)
+}
+
 // Contract read functions
 export const getProposalCount = async (publicClient: any, contractAddress: `0x${string}`) => {
   try {
@@ -78,19 +88,56 @@ export const getVoteCost = async (publicClient: any, contractAddress: `0x${strin
   }
 }
 
+// Helper function to safely estimate gas or use default
+const safelyEstimateGas = async (
+  walletClient: any,
+  publicClient: any, 
+  txParams: any, 
+  defaultGasLimit: bigint
+) => {
+  try {
+    const gasEstimate = await publicClient.estimateContractGas({
+      ...txParams,
+      account: walletClient.account
+    })
+    
+    // Add 20% buffer to gas estimate
+    return (gasEstimate * BigInt(120)) / BigInt(100)
+  } catch (error) {
+    console.warn('Gas estimation failed, using default gas limit:', error)
+    return defaultGasLimit
+  }
+}
+
 // Contract write functions
 export const createProposal = async (
   walletClient: any,
+  publicClient: any,
   contractAddress: `0x${string}`,
   params: CreateProposalParams
 ) => {
   try {
-    const hash = await walletClient.writeContract({
+    const txParams = {
       address: contractAddress,
       abi: SymposiumABI,
       functionName: 'createProposal',
       args: [params.title, params.details, params.duration],
+    }
+    
+    // Safely estimate gas or use default
+    const gas = await safelyEstimateGas(
+      walletClient,
+      publicClient,
+      txParams,
+      GAS_LIMITS.CREATE_PROPOSAL
+    )
+    
+    // Send transaction with gas limit
+    const hash = await walletClient.writeContract({
+      ...txParams,
+      gas
     })
+    
     return hash
   } catch (error) {
     console.error('Error creating proposal:', error)
@@ -100,17 +147,33 @@ export const createProposal = async (
 
 export const createOpinion = async (
   walletClient: any,
+  publicClient: any,
   contractAddress: `0x${string}`,
   params: CreateOpinionParams
 ) => {
   try {
-    const hash = await walletClient.writeContract({
+    const txParams = {
       address: contractAddress,
       abi: SymposiumABI,
       functionName: 'createOpinion',
       args: [params.proposalId, params.vote, params.reasoning],
       value: parseEther(VOTE_COST),
+    }
+    
+    // Safely estimate gas or use default
+    const gas = await safelyEstimateGas(
+      walletClient,
+      publicClient,
+      txParams,
+      GAS_LIMITS.CREATE_OPINION
+    )
+    
+    // Send transaction with gas limit
+    const hash = await walletClient.writeContract({
+      ...txParams,
+      gas
     })
+    
     return hash
   } catch (error) {
     console.error('Error creating opinion:', error)
@@ -120,17 +183,33 @@ export const createOpinion = async (
 
 export const voteForOpinion = async (
   walletClient: any,
+  publicClient: any,
   contractAddress: `0x${string}`,
   params: VoteForOpinionParams
 ) => {
   try {
-    const hash = await walletClient.writeContract({
+    const txParams = {
       address: contractAddress,
       abi: SymposiumABI,
       functionName: 'voteForOpinion',
       args: [params.proposalId, params.opinionIndex],
       value: parseEther(VOTE_COST),
+    }
+    
+    // Safely estimate gas or use default
+    const gas = await safelyEstimateGas(
+      walletClient,
+      publicClient,
+      txParams,
+      GAS_LIMITS.VOTE_FOR_OPINION
+    )
+    
+    // Send transaction with gas limit
+    const hash = await walletClient.writeContract({
+      ...txParams,
+      gas
     })
+    
     return hash
   } catch (error) {
     console.error('Error voting for opinion:', error)
@@ -140,16 +219,32 @@ export const voteForOpinion = async (
 
 export const finalizeProposal = async (
   walletClient: any,
+  publicClient: any,
   contractAddress: `0x${string}`,
   proposalId: bigint
 ) => {
   try {
-    const hash = await walletClient.writeContract({
+    const txParams = {
       address: contractAddress,
       abi: SymposiumABI,
       functionName: 'finalizeProposal',
       args: [proposalId],
+    }
+    
+    // Safely estimate gas or use default
+    const gas = await safelyEstimateGas(
+      walletClient,
+      publicClient,
+      txParams,
+      GAS_LIMITS.FINALIZE_PROPOSAL
+    )
+    
+    // Send transaction with gas limit
+    const hash = await walletClient.writeContract({
+      ...txParams,
+      gas
     })
+    
     return hash
   } catch (error) {
     console.error(`Error finalizing proposal ${proposalId}:`, error)
@@ -159,16 +254,32 @@ export const finalizeProposal = async (
 
 export const claimReward = async (
   walletClient: any,
+  publicClient: any,
   contractAddress: `0x${string}`,
   proposalId: bigint
 ) => {
   try {
-    const hash = await walletClient.writeContract({
+    const txParams = {
       address: contractAddress,
       abi: SymposiumABI,
       functionName: 'claimReward',
       args: [proposalId],
+    }
+    
+    // Safely estimate gas or use default
+    const gas = await safelyEstimateGas(
+      walletClient,
+      publicClient,
+      txParams,
+      GAS_LIMITS.CLAIM_REWARD
+    )
+    
+    // Send transaction with gas limit
+    const hash = await walletClient.writeContract({
+      ...txParams,
+      gas
     })
+    
     return hash
   } catch (error) {
     console.error(`Error claiming reward for proposal ${proposalId}:`, error)

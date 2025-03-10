@@ -4,37 +4,97 @@ import { useProposals } from "../contexts/ProposalsContext"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Heart, Share, CheckCircle2, XCircle } from "lucide-react"
+import { Heart, Share, CheckCircle2, XCircle, Info } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useWeb3 } from "../contexts/Web3Context"
+import { useSymposium } from "../hooks/useSymposium"
+import { TransactionStatus } from "./transaction-status"
+import { VOTE_COST } from "@/contracts/config"
 import AddOpinion from "./add-opinion"
 
 export default function ProposalDetails({ id }: { id: string }) {
-  const { getProposal, loveOpinion, version } = useProposals()
+  const { getProposal, version } = useProposals()
+  const { isConnected, isCorrectNetwork } = useWeb3()
+  const { voteForOpinion, isContractAvailable } = useSymposium()
+  
   const proposal = getProposal(Number.parseInt(id))
   const [selectedOpinionId, setSelectedOpinionId] = useState<number | null>(null)
-  const [stakeAmount, setStakeAmount] = useState("0.01")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [txStatus, setTxStatus] = useState<'idle' | 'pending' | 'confirming' | 'success' | 'error'>('idle')
+  const [txHash, setTxHash] = useState<`0x${string}` | undefined>(undefined)
+  const [txError, setTxError] = useState<Error | null>(null)
+  const [confirmations, setConfirmations] = useState(0)
 
   console.log("Rendering ProposalDetails for proposal", id, "with version", version)
 
   if (!proposal) return <div>Proposal not found</div>
 
-  const handleLoveClick = (opinionId: number) => {
+  const handleVoteClick = (opinionId: number) => {
+    if (!isConnected) {
+      alert("Please connect your wallet first")
+      return
+    }
+    
+    if (!isCorrectNetwork) {
+      alert("Please switch to the correct network")
+      return
+    }
+    
+    if (!isContractAvailable) {
+      alert("Contract is not available on this network")
+      return
+    }
+
     setSelectedOpinionId(opinionId)
     setIsDialogOpen(true)
   }
 
-  const handleLoveConfirm = () => {
-    if (selectedOpinionId !== null) {
-      loveOpinion(proposal.id, selectedOpinionId, parseFloat(stakeAmount))
-      setIsDialogOpen(false)
+  const handleVoteConfirm = async () => {
+    if (selectedOpinionId === null) return
+    
+    setIsDialogOpen(false)
+    setTxStatus('pending')
+    setTxError(null)
+    
+    try {
+      // Call the contract to vote for the opinion
+      const txResult = await voteForOpinion(
+        BigInt(proposal.id),
+        BigInt(selectedOpinionId)
+      )
+      
+      setTxHash(txResult.hash)
+      setTxStatus('confirming')
+      
+      // Wait for confirmation
+      const receipt = await txResult.confirmTransaction()
+      
+      // Update local state with confirmation
+      setConfirmations(1)
+      setTxStatus('success')
+      
+      // Reset
       setSelectedOpinionId(null)
-      setStakeAmount("0.01")
+    } catch (error) {
+      console.error("Error voting for opinion:", error)
+      setTxError(error as Error)
+      setTxStatus('error')
+    }
+  }
+  
+  const handleDismiss = () => {
+    setTxStatus('idle')
+    setTxHash(undefined)
+    setTxError(null)
+    setConfirmations(0)
+  }
+  
+  const handleRetry = () => {
+    if (selectedOpinionId !== null) {
+      handleVoteConfirm()
     }
   }
 
@@ -105,7 +165,8 @@ export default function ProposalDetails({ id }: { id: string }) {
                       variant="ghost" 
                       size="sm" 
                       className={`flex items-center ${opinion.likes > 0 ? "text-pink-500" : "text-gray-500"} hover:text-pink-500`}
-                      onClick={() => handleLoveClick(opinion.id)}
+                      onClick={() => handleVoteClick(opinion.id)}
+                      disabled={!isConnected || !isCorrectNetwork || !isContractAvailable}
                     >
                       <Heart className="mr-1 h-4 w-4" />
                       <span>
@@ -114,7 +175,7 @@ export default function ProposalDetails({ id }: { id: string }) {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Love this opinion with stake</p>
+                    <p>Vote for this opinion with {VOTE_COST} ETH</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -129,30 +190,41 @@ export default function ProposalDetails({ id }: { id: string }) {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Love this opinion</DialogTitle>
+            <DialogTitle>Vote for this opinion</DialogTitle>
             <DialogDescription>
-              Add stake to show your support for this opinion. The more stake you add, the more weight your love carries.
+              You will stake {VOTE_COST} ETH to vote for this opinion. This stake will go to the creator of the opinion if their side wins.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="stake">Stake Amount (ETH)</Label>
-              <Input
-                id="stake"
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={stakeAmount}
-                onChange={(e) => setStakeAmount(e.target.value)}
-              />
+            <div className="flex items-center justify-center">
+              <div className="bg-blue-50 p-4 rounded-lg flex items-start space-x-3">
+                <Info className="text-blue-500 h-5 w-5 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-blue-700">Note</h4>
+                  <p className="text-sm text-blue-600">Voting costs exactly {VOTE_COST} ETH. This amount is fixed in the smart contract.</p>
+                </div>
+              </div>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleLoveConfirm}>Confirm</Button>
+            <Button onClick={handleVoteConfirm}>Confirm Vote</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {txStatus !== 'idle' && (
+        <TransactionStatus
+          status={txStatus}
+          hash={txHash}
+          error={txError}
+          confirmations={confirmations}
+          onDismiss={handleDismiss}
+          onRetry={handleRetry}
+          title={txStatus === 'success' ? "Vote Successful" : undefined}
+          description={txStatus === 'success' ? "Your vote has been recorded on the blockchain" : undefined}
+        />
+      )}
     </div>
   )
 }
