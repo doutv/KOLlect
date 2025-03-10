@@ -32,6 +32,8 @@ type ProposalsContextType = {
   proposals: Proposal[]
   getProposal: (id: number) => Proposal | undefined
   addProposal: (proposal: Omit<Proposal, "id" | "lastUpdated" | "opinions">) => void
+  addOpinion: (proposalId: number, opinion: Omit<Opinion, "id" | "likes" | "likeStake" | "timestamp">) => void
+  loveOpinion: (proposalId: number, opinionId: number, stakeAmount: number) => void
   version: number
 }
 
@@ -105,6 +107,8 @@ type Action =
   | { type: "UPDATE_PROPOSALS" }
   | { type: "SET_PROPOSALS"; proposals: Proposal[] }
   | { type: "ADD_PROPOSAL"; proposal: Omit<Proposal, "id" | "lastUpdated" | "opinions"> }
+  | { type: "ADD_OPINION"; proposalId: number; opinion: Omit<Opinion, "id" | "likes" | "likeStake" | "timestamp"> }
+  | { type: "LOVE_OPINION"; proposalId: number; opinionId: number; stakeAmount: number }
   | { type: "INITIALIZE_CLIENT" }
 
 function proposalsReducer(state: { proposals: Proposal[]; version: number; isInitialized: boolean }, action: Action) {
@@ -162,6 +166,55 @@ function proposalsReducer(state: { proposals: Proposal[]; version: number; isIni
         version: state.version + 1,
       }
       
+    case "ADD_OPINION":
+      return {
+        ...state,
+        proposals: state.proposals.map(proposal => {
+          if (proposal.id === action.proposalId) {
+            const newOpinionId = Math.max(0, ...proposal.opinions.map(o => o.id)) + 1
+            const newOpinion: Opinion = {
+              ...action.opinion,
+              id: newOpinionId,
+              likes: 0,
+              likeStake: 0,
+              timestamp: "Just now"
+            }
+            return {
+              ...proposal,
+              opinions: [...proposal.opinions, newOpinion],
+              lastUpdated: Date.now()
+            }
+          }
+          return proposal
+        }),
+        version: state.version + 1
+      }
+      
+    case "LOVE_OPINION":
+      return {
+        ...state,
+        proposals: state.proposals.map(proposal => {
+          if (proposal.id === action.proposalId) {
+            return {
+              ...proposal,
+              opinions: proposal.opinions.map(opinion => {
+                if (opinion.id === action.opinionId) {
+                  return {
+                    ...opinion,
+                    likes: opinion.likes + 1,
+                    likeStake: Number((opinion.likeStake + action.stakeAmount).toFixed(2))
+                  }
+                }
+                return opinion
+              }),
+              lastUpdated: Date.now()
+            }
+          }
+          return proposal
+        }),
+        version: state.version + 1
+      }
+      
     default:
       return state
   }
@@ -193,6 +246,14 @@ export const ProposalsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const addProposal = useCallback((proposal: Omit<Proposal, "id" | "lastUpdated" | "opinions">) => {
     dispatch({ type: "ADD_PROPOSAL", proposal })
   }, [])
+  
+  const addOpinion = useCallback((proposalId: number, opinion: Omit<Opinion, "id" | "likes" | "likeStake" | "timestamp">) => {
+    dispatch({ type: "ADD_OPINION", proposalId, opinion })
+  }, [])
+  
+  const loveOpinion = useCallback((proposalId: number, opinionId: number, stakeAmount: number) => {
+    dispatch({ type: "LOVE_OPINION", proposalId, opinionId, stakeAmount })
+  }, [])
 
   useEffect(() => {
     // Only start the interval on the client side after initialization
@@ -211,6 +272,8 @@ export const ProposalsProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         proposals: state.proposals,
         getProposal,
         addProposal,
+        addOpinion,
+        loveOpinion,
         version: state.version,
       }}
     >

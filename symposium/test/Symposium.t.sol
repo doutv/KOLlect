@@ -30,8 +30,12 @@ contract SymposiumTest is Test {
 
     function test_CreateProposal() public {
         vm.prank(alice);
-        symposium.createProposal("Cat Adoption", "Should we adopt a cat?", 1 days);
-        
+        symposium.createProposal(
+            "Cat Adoption",
+            "Should we adopt a cat?",
+            1 days
+        );
+
         // Just check that it doesn't revert
         symposium.proposalCount();
     }
@@ -39,7 +43,11 @@ contract SymposiumTest is Test {
     function test_CreateOpinion() public {
         // Create proposal first
         vm.prank(alice);
-        symposium.createProposal("Cat Adoption", "Should we adopt a cat?", 1 days);
+        symposium.createProposal(
+            "Cat Adoption",
+            "Should we adopt a cat?",
+            1 days
+        );
 
         // Bob creates YES opinion
         vm.prank(bob);
@@ -53,7 +61,11 @@ contract SymposiumTest is Test {
     function test_VoteForOpinion() public {
         // Setup: Create proposal and opinions
         vm.prank(alice);
-        symposium.createProposal("Cat Adoption", "Should we adopt a cat?", 1 days);
+        symposium.createProposal(
+            "Cat Adoption",
+            "Should we adopt a cat?",
+            1 days
+        );
 
         vm.prank(bob);
         symposium.createOpinion{value: VOTE_COST}(1, true, "Cats are great!");
@@ -72,7 +84,11 @@ contract SymposiumTest is Test {
 
     function test_RevertDoubleVote() public {
         vm.prank(alice);
-        symposium.createProposal("Cat Adoption", "Should we adopt a cat?", 1 days);
+        symposium.createProposal(
+            "Cat Adoption",
+            "Should we adopt a cat?",
+            1 days
+        );
 
         // First vote: Bob creates an opinion
         vm.prank(bob);
@@ -99,7 +115,11 @@ contract SymposiumTest is Test {
 
     function test_RevertInvalidVoteCost() public {
         vm.prank(alice);
-        symposium.createProposal("Cat Adoption", "Should we adopt a cat?", 1 days);
+        symposium.createProposal(
+            "Cat Adoption",
+            "Should we adopt a cat?",
+            1 days
+        );
 
         vm.prank(bob);
         vm.expectRevert("Must send 0.1 ETH");
@@ -108,7 +128,11 @@ contract SymposiumTest is Test {
 
     function test_RevertExpiredProposal() public {
         vm.prank(alice);
-        symposium.createProposal("Cat Adoption", "Should we adopt a cat?", 1 days);
+        symposium.createProposal(
+            "Cat Adoption",
+            "Should we adopt a cat?",
+            1 days
+        );
 
         // Fast forward 2 days
         vm.warp(block.timestamp + 2 days);
@@ -121,22 +145,26 @@ contract SymposiumTest is Test {
     function test_CompleteVotingCycleYesWins() public {
         // Create proposal
         vm.prank(alice);
-        symposium.createProposal("Cat Adoption", "Should we adopt a cat?", 1 days);
+        symposium.createProposal(
+            "Cat Adoption",
+            "Should we adopt a cat?",
+            1 days
+        );
 
         // Bob creates YES opinion and gets 2 votes (Dave, Eve)
         vm.prank(bob);
         symposium.createOpinion{value: VOTE_COST}(1, true, "Cats are great!");
-        
+
         vm.prank(dave);
         symposium.voteForOpinion{value: VOTE_COST}(1, 0);
-        
+
         vm.prank(eve);
         symposium.voteForOpinion{value: VOTE_COST}(1, 0);
 
         // Carol creates NO opinion and gets 1 vote (Frank)
         vm.prank(carol);
         symposium.createOpinion{value: VOTE_COST}(1, false, "I'm allergic");
-        
+
         vm.prank(frank);
         symposium.voteForOpinion{value: VOTE_COST}(1, 1);
 
@@ -168,22 +196,26 @@ contract SymposiumTest is Test {
     function test_CompleteVotingCycleNoWins() public {
         // Create proposal
         vm.prank(alice);
-        symposium.createProposal("Cat Adoption", "Should we adopt a cat?", 1 days);
+        symposium.createProposal(
+            "Cat Adoption",
+            "Should we adopt a cat?",
+            1 days
+        );
 
         // Bob creates YES opinion and gets 1 vote (Dave)
         vm.prank(bob);
         symposium.createOpinion{value: VOTE_COST}(1, true, "Cats are great!");
-        
+
         vm.prank(dave);
         symposium.voteForOpinion{value: VOTE_COST}(1, 0);
 
         // Carol creates NO opinion and gets 2 votes (Frank, Eve)
         vm.prank(carol);
         symposium.createOpinion{value: VOTE_COST}(1, false, "I'm allergic");
-        
+
         vm.prank(frank);
         symposium.voteForOpinion{value: VOTE_COST}(1, 1);
-        
+
         vm.prank(eve);
         symposium.voteForOpinion{value: VOTE_COST}(1, 1);
 
@@ -215,7 +247,11 @@ contract SymposiumTest is Test {
     function test_RevertDoubleClaim() public {
         // Create and finalize a proposal with YES winning
         vm.prank(alice);
-        symposium.createProposal("Cat Adoption", "Should we adopt a cat?", 1 days);
+        symposium.createProposal(
+            "Cat Adoption",
+            "Should we adopt a cat?",
+            1 days
+        );
 
         vm.prank(bob);
         symposium.createOpinion{value: VOTE_COST}(1, true, "Cats are great!");
@@ -233,4 +269,4 @@ contract SymposiumTest is Test {
         vm.expectRevert("Already claimed");
         symposium.claimReward(1);
     }
-} 
+}

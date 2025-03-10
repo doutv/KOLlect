@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { useEffect, useState } from "react"
+import { MessageSquare } from "lucide-react"
 
 interface ProposalCardProps {
   proposal: {
@@ -16,6 +17,7 @@ interface ProposalCardProps {
     totalStake: number
     yesPercentage: number
     noPercentage: number
+    opinions?: { id: number }[]
   }
   isNew: boolean
 }
@@ -26,6 +28,8 @@ export default function ProposalCard({ proposal, isNew }: ProposalCardProps) {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  const opinionCount = proposal.opinions?.length || 0
 
   return (
     <Card className={`mb-4 ${mounted && isNew ? "border-2 border-blue-500" : ""}`}>
@@ -64,9 +68,15 @@ export default function ProposalCard({ proposal, isNew }: ProposalCardProps) {
         </div>
       </CardContent>
       <CardFooter className="justify-between">
-        <Badge variant="outline">Total Stake: {proposal.totalStake.toFixed(2)} ETH</Badge>
+        <div className="flex items-center space-x-4">
+          <Badge variant="outline">Total Stake: {proposal.totalStake.toFixed(2)} ETH</Badge>
+          <div className="flex items-center text-gray-500">
+            <MessageSquare className="h-4 w-4 mr-1" />
+            <span>{opinionCount} opinion{opinionCount !== 1 ? 's' : ''}</span>
+          </div>
+        </div>
         <Link href={`/proposal/${proposal.id}`}>
-          <Button className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50">View Details</Button>
+          <Button variant="outline" size="sm">View Details</Button>
         </Link>
       </CardFooter>
     </Card>

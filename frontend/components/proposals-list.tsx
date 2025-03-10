@@ -2,67 +2,57 @@
 
 import { useProposals } from "../contexts/ProposalsContext"
 import ProposalCard from "./proposal-card"
-import { AnimatePresence, motion } from "framer-motion"
-import { useState, useEffect } from "react"
+import { useEffect, useState, useRef } from "react"
 
 export default function ProposalsList() {
   const { proposals, version } = useProposals()
-  const [clientSideProposals, setClientSideProposals] = useState<Array<any>>([])
-  const [isClient, setIsClient] = useState(false)
-  
-  // Set isClient to true once component is mounted
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
-  
-  // Only update isNew status on the client side after hydration
-  useEffect(() => {
-    if (isClient) {
-      setClientSideProposals(
-        proposals.map((proposal, index) => ({
-          ...proposal,
-          isNew: index === 0 && proposal.lastUpdated > Date.now() - 5000
-        }))
-      )
-    }
-  }, [proposals, version, isClient])
+  const [lastUpdatedIds, setLastUpdatedIds] = useState<number[]>([])
+  const prevVersionRef = useRef(version)
+  const prevProposalsRef = useRef(proposals)
 
-  // Use an empty array for initial server render to avoid hydration mismatch
+  // Track which proposals have been updated
   useEffect(() => {
-    if (isClient && clientSideProposals.length === 0 && proposals.length > 0) {
-      setClientSideProposals(proposals.map(proposal => ({ ...proposal, isNew: false })))
+    if (prevVersionRef.current !== version) {
+      const updatedIds: number[] = []
+      
+      proposals.forEach((proposal) => {
+        const prevProposal = prevProposalsRef.current.find((p) => p.id === proposal.id)
+        
+        // If proposal is new or has been updated
+        if (!prevProposal || prevProposal.lastUpdated !== proposal.lastUpdated) {
+          updatedIds.push(proposal.id)
+        }
+      })
+      
+      setLastUpdatedIds(updatedIds)
+      prevVersionRef.current = version
+      prevProposalsRef.current = proposals
     }
-  }, [proposals, clientSideProposals, isClient])
+  }, [proposals, version])
 
-  // Server-side or initial render
-  if (!isClient) {
-    return (
-      <div className="space-y-6">
-        {proposals.map((proposal) => (
-          <div key={proposal.id} className="opacity-0">
-            <ProposalCard proposal={proposal} isNew={false} />
-          </div>
-        ))}
-      </div>
-    )
-  }
+  // Clear the "new" status after 5 seconds
+  useEffect(() => {
+    if (lastUpdatedIds.length > 0) {
+      const timer = setTimeout(() => {
+        setLastUpdatedIds([])
+      }, 5000)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [lastUpdatedIds])
 
   return (
-    <div className="space-y-6">
-      <AnimatePresence>
-        {clientSideProposals.map((proposal) => (
-          <motion.div
+    <div className="space-y-4">
+      <h2 className="text-2xl font-bold">Active Proposals</h2>
+      <div>
+        {proposals.map((proposal) => (
+          <ProposalCard
             key={proposal.id}
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -50 }}
-            transition={{ duration: 0.5 }}
-            layout
-          >
-            <ProposalCard proposal={proposal} isNew={proposal.isNew} />
-          </motion.div>
+            proposal={proposal}
+            isNew={lastUpdatedIds.includes(proposal.id)}
+          />
         ))}
-      </AnimatePresence>
+      </div>
     </div>
   )
 }
