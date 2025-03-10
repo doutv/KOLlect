@@ -48,6 +48,8 @@ forge script script/Symposium.s.sol:SymposiumScript \
 
 2. Verify contract:
 ```bash
+CONTRACT_ADDRESS=0x
+
 forge verify-contract \
 $CONTRACT_ADDRESS \
 src/Symposium.sol:Symposium \
